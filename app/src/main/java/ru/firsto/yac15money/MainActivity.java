@@ -7,7 +7,9 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
-import android.widget.TextView;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -32,8 +34,10 @@ public class MainActivity extends AppCompatActivity {
     private DBHelper mHelper;
     private SharedPreferences mPrefs;
 
-    TextView tv;
-//    ListView lv;
+    Button reloadButton;
+
+    FragmentManager fm;
+    Fragment listFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,15 +47,23 @@ public class MainActivity extends AppCompatActivity {
         mHelper = new DBHelper(getApplicationContext());
         mPrefs = getApplicationContext().getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE);
         boolean isFirstStart = mPrefs.getBoolean(PREF_FIRST_START, true);
-        tv = (TextView) findViewById(R.id.jsonText);
-//        lv = (ListView) findViewById(R.id.listView);
 
         if (isFirstStart) {
-            APILoader ymdata = new APILoader();
-            ymdata.execute();
+            loadList();
 
-            mPrefs.edit().putBoolean(PREF_FIRST_START, false).apply();
+            mPrefs.edit().putBoolean(PREF_FIRST_START, false).commit();
         }
+
+        reloadButton = (Button) findViewById(R.id.reloadButton);
+        reloadButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.d("TAG", "reloadClick");
+                loadList();
+            }
+        });
+
+
 
         String text = "";
 
@@ -73,15 +85,37 @@ public class MainActivity extends AppCompatActivity {
 //        ItemAdapter adapter = new ItemAdapter(getApplicationContext(), 0, items);
 
 
-        FragmentManager fm = getSupportFragmentManager();
-        Fragment fragment = fm.findFragmentById(R.id.fragmentContainer);
+        fm = getSupportFragmentManager();
+        listFragment = fm.findFragmentByTag(ItemListFragment.TAG);
 
-        if (fragment == null) {
-            fragment = new ItemListFragment();
-            fm.beginTransaction()
-                    .add(R.id.fragmentContainer, fragment)
-                    .commit();
-        }
+        initFragment();
+
+        Button clear = (Button) findViewById(R.id.clear);
+        clear.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mHelper.clearDatabase();
+
+//                if (listFragment instanceof ItemListFragment) {
+//                    ((ItemListFragment) listFragment).reloadList();
+//                }
+                if (listFragment != null) {
+                    fm.beginTransaction().remove(listFragment).commit();
+                }
+            }
+        });
+        Button refresh = (Button) findViewById(R.id.refresh);
+        refresh.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Log.d("TAG", "refresh");
+                if (listFragment != null) {
+                    fm.beginTransaction().remove(listFragment).commit();
+                }
+                listFragment = null;
+                initFragment();
+            }
+        });
 
 //        String[] from = new String[] { "title", "_id" };
 //        int[] to = new int[] { R.id.item_title, R.id.item_id };
@@ -115,6 +149,22 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void initFragment() {
+        Log.d("TAG", "initFragment()");
+        if (listFragment == null) {
+            listFragment = new ItemListFragment();
+            fm.beginTransaction()
+                    .add(R.id.fragmentContainer, listFragment, ItemListFragment.TAG)
+                    .commit();
+        }
+    }
+
+    private void loadList() {
+        Log.d("TAG", "loadList()");
+//        mHelper.clearDatabase();
+        APILoader ymdata = new APILoader();
+        ymdata.execute();
+    }
 
 
     public class APILoader extends AsyncTask<Void, Void, Void> {
@@ -123,7 +173,7 @@ public class MainActivity extends AppCompatActivity {
         protected Void doInBackground(Void... params) {
             try {
                 String jsonString = getUrl(API_URL);
-
+                Log.d("TAG", jsonString);
                 parseJSON(jsonString, 0);
 
             } catch (IOException e) {
@@ -132,6 +182,11 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
             return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
         }
     }
 

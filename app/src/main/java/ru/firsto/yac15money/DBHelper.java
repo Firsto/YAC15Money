@@ -11,6 +11,7 @@ import android.database.CursorWrapper;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.location.Location;
+import android.util.Log;
 
 import java.util.Date;
 
@@ -49,6 +50,20 @@ public class DBHelper extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // Здесь реализуются изменения схемы и преобразования данных
         // при обновлении схемы
+    }
+
+    public void clearDatabase() {
+        Log.d("TAG", "cleared11");
+        try {
+            SQLiteDatabase db = SQLiteDatabase.openDatabase(getWritableDatabase().getPath(), null, 0);
+            db.delete(TABLE_GOODS, null, null);
+            getWritableDatabase().beginTransaction();
+            getWritableDatabase().delete(TABLE_GOODS, null, null);
+            getWritableDatabase().endTransaction();
+            Log.d("TAG", "cleared >>>");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public long insertItem(Item item) {
