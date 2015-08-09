@@ -1,10 +1,12 @@
 package ru.firsto.yac15money;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
 
 import org.json.JSONArray;
@@ -16,60 +18,120 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
+    public static final String TAG = "money";
+
+    private static final String PREFS_FILE = "goods";
+    private static final String PREF_FIRST_START = "first_start";
+
     public static final String API_URL = "https://money.yandex.ru/api/categories-list";
 
+    private DBHelper mHelper;
+    private SharedPreferences mPrefs;
+
     TextView tv;
+//    ListView lv;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mHelper = new DBHelper(getApplicationContext());
+        mPrefs = getApplicationContext().getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE);
+        boolean isFirstStart = mPrefs.getBoolean(PREF_FIRST_START, true);
         tv = (TextView) findViewById(R.id.jsonText);
+//        lv = (ListView) findViewById(R.id.listView);
 
-        APILoader ymdata = new APILoader();
-        ymdata.execute();
+        if (isFirstStart) {
+            APILoader ymdata = new APILoader();
+            ymdata.execute();
+
+            mPrefs.edit().putBoolean(PREF_FIRST_START, false).apply();
+        }
+
+        String text = "";
+
+        DBHelper.ItemCursor cursor = mHelper.queryItems();
+//        DBHelper.ItemCursor cursor = mHelper.queryChildItems(14);
+        while (cursor.moveToNext()) {
+            Item item = cursor.getItem();
+            text += item.getId() + " -- " + item.getInternal_id() + " -- " + item.getTitle() + " --- parent " + item.getParent_id();
+            text += "\n-------\n";
+        }
+//        tv.setText(text);
+
+        ArrayList<Item> items = new ArrayList<>();
+        cursor = mHelper.queryChildItems(0);
+        while (cursor.moveToNext()) {
+            items.add(cursor.getItem());
+        }
+
+//        ItemAdapter adapter = new ItemAdapter(getApplicationContext(), 0, items);
+
+
+        FragmentManager fm = getSupportFragmentManager();
+        Fragment fragment = fm.findFragmentById(R.id.fragmentContainer);
+
+        if (fragment == null) {
+            fragment = new ItemListFragment();
+            fm.beginTransaction()
+                    .add(R.id.fragmentContainer, fragment)
+                    .commit();
+        }
+
+//        String[] from = new String[] { "title", "_id" };
+//        int[] to = new int[] { R.id.item_title, R.id.item_id };
+//
+//        SimpleCursorAdapter scAdapter = new SimpleCursorAdapter(this, R.layout.item, cursor, from, to);
+//        lv.setAdapter(scAdapter);
+//        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+//            @Override
+//            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+//
+//            }
+//        });
+
+
+
+//        try {
+//            // Check if there are any unsent messages
+//            if (cursor == null || cursor.getCount() == 0) {
+//                // No queued messages to send
+//                return;
+//            }
+//
+//            // Send messages
+//            while (cursor.moveToNext()) {
+//
+//                // Do stuff
+//            }
+//        }
+
+
+
     }
 
-    public class APILoader extends AsyncTask<Void,Void,String>{
+
+
+    public class APILoader extends AsyncTask<Void, Void, Void> {
 
         @Override
-        protected String doInBackground(Void... params) {
-            String text = "";
-
+        protected Void doInBackground(Void... params) {
             try {
                 String jsonString = getUrl(API_URL);
 
-                JSONArray entries = new JSONArray(jsonString);
-
-
-                text = "JSON parsed.\nThere are [" + entries.length() + "]\n\n";
-
-                int i;
-                for (i=0;i<entries.length();i++)
-                {
-                    JSONObject post = entries.getJSONObject(i);
-                    text += "------------\n";
-                    text += "Title:" + post.getString("title") + "\n";
-//                    text += "Post:" + post.getString("text") + "\n\n";
-                }
+                parseJSON(jsonString, 0);
 
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-
-            return text;
-        }
-
-        @Override
-        protected void onPostExecute(String string) {
-            super.onPostExecute(string);
-            tv.setText(string);
+            return null;
         }
     }
 
@@ -97,4 +159,47 @@ public class MainActivity extends AppCompatActivity {
     private String getUrl(String urlSpec) throws IOException {
         return new String(getUrlBytes(urlSpec));
     }
+
+    private void parseJSON(String jsonString, int parent) throws JSONException {
+        JSONArray entries = new JSONArray(jsonString);
+
+        int id = 0;
+
+        for (int i = 0; i < entries.length(); i++) {
+            JSONObject post = entries.getJSONObject(i);
+
+            Item item = new Item(0, parent, post.optInt("id", 0), post.getString("title"));
+            id = (int) mHelper.insertItem(item);
+
+            JSONArray subs = post.optJSONArray("subs");
+
+            if (subs != null) {
+                parseJSON(subs.toString(), id);
+            }
+        }
+    }
+
+//    private class ItemAdapter extends ArrayAdapter<Item> {
+//
+//        public ItemAdapter(Context context, int resource, ArrayList<Item> items) {
+//            super(context, R.layout.item, items);
+//        }
+//
+//        @Override
+//        public View getView(int position, View convertView, ViewGroup parent) {
+//            Item item = getItem(position);
+//
+//            if (convertView == null) {
+//                convertView = LayoutInflater.from(getContext())
+//                        .inflate(R.layout.item, null);
+//            }
+//            ((TextView) convertView.findViewById(R.id.item_title))
+//                    .setText(item.getTitle());
+//            ((TextView) convertView.findViewById(R.id.item_id))
+//                    .setText(String.valueOf(item.getInternal_id()));
+//
+//            return convertView;
+//        }
+//    }
+
 }
