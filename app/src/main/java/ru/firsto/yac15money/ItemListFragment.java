@@ -21,7 +21,7 @@ public class ItemListFragment extends Fragment {
     private DBHelper mHelper;
     private ListView lv;
 
-    private TreeViewClassifAdapter treeViewClassifAdapter;
+    private TreeAdapter mTreeAdapter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -38,8 +38,8 @@ public class ItemListFragment extends Fragment {
 
         List<ITreeElement> elements = getITreeElements(0, new ArrayList<ITreeElement>());
 
-        treeViewClassifAdapter = new TreeViewClassifAdapter(getActivity(), elements);
-        lv.setAdapter(treeViewClassifAdapter);
+        mTreeAdapter = new TreeAdapter(getActivity(), elements);
+        lv.setAdapter(mTreeAdapter);
 
 //        String[] from = new String[] { "title", "_id" };
 //        int[] to = new int[] { R.id.item_title, R.id.item_id };
@@ -67,10 +67,10 @@ public class ItemListFragment extends Fragment {
 
     public void reloadList() {
         Log.d("TAG", "reload");
-        treeViewClassifAdapter.notifyDataSetChanged();
-        if (lv.getAdapter() instanceof TreeViewClassifAdapter) {
-            ((TreeViewClassifAdapter) lv.getAdapter()).notifyDataSetChanged();
-            ((TreeViewClassifAdapter) lv.getAdapter()).notifyDataSetInvalidated();
+        mTreeAdapter.notifyDataSetChanged();
+        if (lv.getAdapter() instanceof TreeAdapter) {
+            ((TreeAdapter) lv.getAdapter()).notifyDataSetChanged();
+            ((TreeAdapter) lv.getAdapter()).notifyDataSetInvalidated();
             Log.d("TAG", "adaptered");
         }
     }
