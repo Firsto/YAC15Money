@@ -15,9 +15,6 @@ import android.util.Log;
 
 import java.util.Date;
 
-/**
- * Created by razor on 12.03.15.
- **/
 public class DBHelper extends SQLiteOpenHelper {
     public static final String TAG = "RunDatabaseHelper";
 
@@ -93,7 +90,7 @@ public class DBHelper extends SQLiteOpenHelper {
         return new ItemCursor(wrapped);
     }
 
-    public ItemCursor queryItem(long id) {
+    public ItemCursor queryItem(int id) {
         Cursor wrapped = getReadableDatabase().query(TABLE_GOODS,
                 null, // Все столбцы
                 COLUMN_ITEM_ID + " = ?", // Поиск по идентификатору серии

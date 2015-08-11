@@ -13,19 +13,22 @@
 
         <Button
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:id="@+id/reloadButton"
-            android:text="@string/reload_button_caption"/>
+            android:text="@string/reload_button_caption"
+            android:layout_weight="1"/>
         <Button
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:id="@+id/clear"
-            android:text="clear"/>
+            android:text="@string/clear_button_caption"
+            android:layout_weight="1"/>
         <Button
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:id="@+id/refresh"
-            android:text="refresh"/>
+            android:text="@string/refresh_button_caption"
+            android:layout_weight="1"/>
 
     </LinearLayout>
 

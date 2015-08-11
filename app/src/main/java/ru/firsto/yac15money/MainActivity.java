@@ -10,6 +10,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -20,7 +21,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -48,10 +48,15 @@ public class MainActivity extends AppCompatActivity {
         mPrefs = getApplicationContext().getSharedPreferences(PREFS_FILE, Context.MODE_PRIVATE);
         boolean isFirstStart = mPrefs.getBoolean(PREF_FIRST_START, true);
 
+        fm = getSupportFragmentManager();
+        listFragment = fm.findFragmentByTag(ListViewFragment.TAG);
+
         if (isFirstStart) {
             loadList();
 
             mPrefs.edit().putBoolean(PREF_FIRST_START, false).commit();
+        } else {
+            initFragment();
         }
 
         reloadButton = (Button) findViewById(R.id.reloadButton);
@@ -63,45 +68,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
-
-        String text = "";
-
-        DBHelper.ItemCursor cursor = mHelper.queryItems();
-//        DBHelper.ItemCursor cursor = mHelper.queryChildItems(14);
-        while (cursor.moveToNext()) {
-            Item item = cursor.getItem();
-            text += item.getId() + " -- " + item.getInternal_id() + " -- " + item.getTitle() + " --- parent " + item.getParent_id();
-            text += "\n-------\n";
-        }
-//        tv.setText(text);
-
-        ArrayList<Item> items = new ArrayList<>();
-        cursor = mHelper.queryChildItems(0);
-        while (cursor.moveToNext()) {
-            items.add(cursor.getItem());
-        }
-
-//        ItemAdapter adapter = new ItemAdapter(getApplicationContext(), 0, items);
-
-
-        fm = getSupportFragmentManager();
-        listFragment = fm.findFragmentByTag(ItemListFragment.TAG);
-
-        initFragment();
-
         Button clear = (Button) findViewById(R.id.clear);
         clear.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 mHelper.clearDatabase();
 
-//                if (listFragment instanceof ItemListFragment) {
-//                    ((ItemListFragment) listFragment).reloadList();
-//                }
                 if (listFragment != null) {
                     fm.beginTransaction().remove(listFragment).commit();
                 }
+                Toast.makeText(getApplicationContext(), "DB HAS BEEN CLEARED!", Toast.LENGTH_SHORT).show();
             }
         });
         Button refresh = (Button) findViewById(R.id.refresh);
@@ -109,59 +85,33 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Log.d("TAG", "refresh");
-                if (listFragment != null) {
-                    fm.beginTransaction().remove(listFragment).commit();
-                }
-                listFragment = null;
-                initFragment();
+                refreshList();
             }
         });
 
-//        String[] from = new String[] { "title", "_id" };
-//        int[] to = new int[] { R.id.item_title, R.id.item_id };
-//
-//        SimpleCursorAdapter scAdapter = new SimpleCursorAdapter(this, R.layout.item, cursor, from, to);
-//        lv.setAdapter(scAdapter);
-//        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-//            @Override
-//            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-//
-//            }
-//        });
+    }
 
-
-
-//        try {
-//            // Check if there are any unsent messages
-//            if (cursor == null || cursor.getCount() == 0) {
-//                // No queued messages to send
-//                return;
-//            }
-//
-//            // Send messages
-//            while (cursor.moveToNext()) {
-//
-//                // Do stuff
-//            }
-//        }
-
-
-
+    private void refreshList() {
+        if (listFragment != null) {
+            fm.beginTransaction().remove(listFragment).commit();
+        }
+        listFragment = null;
+        initFragment();
     }
 
     private void initFragment() {
         Log.d("TAG", "initFragment()");
         if (listFragment == null) {
-            listFragment = new ItemListFragment();
+            listFragment = new ListViewFragment();
             fm.beginTransaction()
-                    .add(R.id.fragmentContainer, listFragment, ItemListFragment.TAG)
+                    .add(R.id.fragmentContainer, listFragment, ListViewFragment.TAG)
                     .commit();
         }
     }
 
     private void loadList() {
         Log.d("TAG", "loadList()");
-//        mHelper.clearDatabase();
+        mHelper.clearDatabase();
         APILoader ymdata = new APILoader();
         ymdata.execute();
     }
@@ -187,6 +137,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
+            refreshList();
         }
     }
 
@@ -233,28 +184,4 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
-//    private class ItemAdapter extends ArrayAdapter<Item> {
-//
-//        public ItemAdapter(Context context, int resource, ArrayList<Item> items) {
-//            super(context, R.layout.item, items);
-//        }
-//
-//        @Override
-//        public View getView(int position, View convertView, ViewGroup parent) {
-//            Item item = getItem(position);
-//
-//            if (convertView == null) {
-//                convertView = LayoutInflater.from(getContext())
-//                        .inflate(R.layout.item, null);
-//            }
-//            ((TextView) convertView.findViewById(R.id.item_title))
-//                    .setText(item.getTitle());
-//            ((TextView) convertView.findViewById(R.id.item_id))
-//                    .setText(String.valueOf(item.getInternal_id()));
-//
-//            return convertView;
-//        }
-//    }
-
 }
